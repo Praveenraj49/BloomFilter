@@ -10,8 +10,8 @@ import java.util.HashSet;
 import java.util.Scanner;
 public class SpellChecker {
 
-    public Set<String>  dictionary;
-    public BloomFilter<String> filter;
+    private Set<String>  dictionary;
+    private BloomFilter<String> filter;
 
     public SpellChecker(String filePath ) throws Exception {
         read(filePath);
@@ -33,6 +33,10 @@ public class SpellChecker {
         }
     }
 
+    public double getProbability() {
+        return (1-filter.getFalseProbability());
+    }
+
     public boolean check(String word) {
          return filter.contains(word);
     }
@@ -49,44 +53,99 @@ public class SpellChecker {
      * @throws Exception
      */
 
+    private static boolean validateFile(String filePath) {
+       File file = new File(filePath);
+       return (file.exists() && file.canRead());
+    }
+
+    private static void  exit(Scanner scanner){
+        System.out.println(String.format("Do you want to exit [Yes|No]"));
+        String input = scanner.nextLine();
+        input = input.toUpperCase();
+        switch(input){
+            case "Y":
+            case "YES":
+                System.exit(0);
+            case "N":
+            case "NO":
+                break;
+            default :
+                System.out.println(String.format("Invalid choice will continue with application enter exit to exit again"));
+                break;
+        }
+
+    }
+
     public static  void main (String[] args) throws Exception  {
 
-        String filePath = null;
+        //TODO Provide an absolute check option , when set the if the filter returns true  will check against the
+        // Dictionary to confirm
+
+        String message = String.format("Welcome to Spell Checker Application \n"+
+                                       "Usage enter the full path of the dictionary to load \n"+
+                                       "Windows : C:\\\\users\\\\words.txt \n"+
+                                       "Unix : /usr/share/words.txt \n"+
+                                       "File must be in the format where in each line contains a single word in dictionary \n" +
+                                       "To exit the application anytime enter exit in the console \n"+
+                                       "Enter the dictionary full path to continue......");
+
+        final String EXIT="EXIT";
+
+        System.out.println(message);
+        String filePath;
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter Dictionary Full path Example  Windows path  C:\\\\users\\\\word.txt ");
+
         filePath = scanner.nextLine();
 
-
-        try {
-            SpellChecker checker = new SpellChecker(filePath);
-
-
-        String[] words = new String[] {"Blatant" , "Yes" , "AFAIK", "ahghakhf", "Hello", "World", "fjhshhs"};
-        for(String word : words)
-        {
-            if(checker.check(word))
-            {
-                System.out.println(word + " Is Present in the filter");
-                if(checker.absCheck(word))
-                {
-                    System.out.println("Returned True");
-                }
-                else
-                {
-                    System.out.println("Returned False Positive");
-                }
+        while(filePath == null || !validateFile(filePath)) {
+            if(filePath ==null || filePath.length()==0 ) {
+                System.out.print("Enter a  filePath of the dictionary to continue");
+            }
+            else if(filePath.equalsIgnoreCase(EXIT)){
+                exit(scanner);
             }
             else
             {
-                System.out.println(word + " Is NOT Present in the filter");
+                System.out.println(String.format("File Name %s doesn't exists or cannot read the file please check the file exists and readable" , filePath));
             }
+            filePath = scanner.nextLine();
         }
 
-        }
 
+        try {
+            System.out.println(String.format("Loading the Dictionary"));
+            SpellChecker checker = new SpellChecker(filePath);
+            System.out.println(String.format("Dictionary Loading Completed , Enter a single word to spell check"));
+
+            String word;
+            while(true) {
+                word = scanner.nextLine();
+                if(word == null || word.length() ==0){
+                    System.out.println(String.format("Enter non empty word to continue ..."));
+                }
+
+                if(word.equalsIgnoreCase(EXIT)){
+                    exit(scanner);
+                }
+
+
+                if(checker.check(word)) {
+                    System.out.println(String.format("Entered word : %s is present in the dictionary  with a probability %f" , word, checker.getProbability()));
+                }
+                else {
+                    System.out.println(String.format("Entered word : %s is not present in the dictionary with a probability %f" , word ,1.0));
+                }
+            }
+
+
+        //String[] words = new String[] {"Blatant" , "Yes" , "AFAIK", "ahghakhf", "Hello", "World", "fjhshhs"};
+
+        }
         catch (Exception ex)
         {
             System.out.println(ex.getMessage());
+            System.out.println(String.format("Press Enter to exit......."));
+            String input = scanner.nextLine();
             System.exit(0);
         }
     }
